@@ -40,6 +40,30 @@ jobs:
         echo "提交: ${{ github.sha }}"
         echo "作者: ${{ github.actor }}"
         echo "时间: $(date)"
+    
+    - name: Send Telegram Notification
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+          MESSAGE="🚀 *代码部署成功*%0A%0A"
+          MESSAGE+="📦 仓库: ${{ github.repository }}%0A"
+          MESSAGE+="📝 提交: ${{ github.event.head_commit.message }}%0A"
+          MESSAGE+="👤 作者: ${{ github.actor }}%0A"
+          MESSAGE+="⏰ 时间: $(date '+%Y-%m-%d %H:%M')%0A%0A"
+          MESSAGE+="🔗 [查看代码](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+          
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${MESSAGE}" \
+            -d "disable_web_page_preview=true"
+          
+          echo "✓ Telegram通知已发送"
+        else
+          echo "⚠️ Telegram secrets未配置，跳过通知"
+        fi
 
   sync-to-notion:
     name: Sync to Notion
